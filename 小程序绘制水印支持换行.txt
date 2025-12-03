@@ -1,0 +1,106 @@
+measureLineCount(ctx, textGroup, maxTextWidth) {
+      let lineCount = 0, oneWordHeight = 0
+      textGroup.forEach(str => {
+        let lineWidth = 0
+        lineCount++
+        for(let i = 0; i < str.length; i++) {
+          let mesure = ctx.measureText(str[i])
+          lineWidth += mesure.width;
+          oneWordHeight = Math.max(oneWordHeight, (mesure.actualBoundingBoxAscent || mesure.fontBoundingBoxAscent) + (mesure.actualBoundingBoxDescent || mesure.fontBoundingBoxDescent))
+          if (lineWidth > maxTextWidth) { 
+            lineCount++
+            lineWidth = 0
+          }
+        }
+      })
+      return { lineCount, oneWordHeight }
+    },
+    renderWrapText(ctx, textGroup, maxTextWidth, texty, oneWordHeight, padding, lineHeight) {
+      textGroup.forEach((str) => { 
+        let lineWidth = 0,
+        lastSubStrIndex = 0
+        for (let i = 0; i < str.length; i++) { 
+          lineWidth += ctx.measureText(str[i]).width;
+          if (lineWidth > maxTextWidth) {
+            // 第一行, string, x, y, 原点左上角
+            ctx.fillText(str.substring(lastSubStrIndex, i), padding, texty); //绘制截取部分
+            texty += oneWordHeight + lineHeight
+            lineWidth = 0;
+            lastSubStrIndex = i;
+          }
+          if (i == str.length - 1) { //绘制剩余部分
+            ctx.fillText(str.substring(lastSubStrIndex, i + 1), padding, texty);
+            texty += oneWordHeight + lineHeight
+          }
+        }
+      })
+    },
+    // 图片添加水印
+    addWaterMark(tempFilePath, waterMark) {
+      let that = this
+      return new Promise((resolve, reject) => {
+          wx.getImageInfo({
+            src: tempFilePath,
+            success: async (imageRes) => {
+              let imageWidth = imageRes.width, imageHeight = imageRes.height;
+              const canvas = wx.createOffscreenCanvas({type: '2d', width: imageWidth, height: imageHeight})
+              // 获取 context。注意这里必须要与创建时的 type 一致
+              const ctx = canvas.getContext('2d')
+              this.setData({
+                canvasWidth: imageWidth,
+                canvasHeight: imageHeight,
+              })
+              // 图片对象
+              const image = canvas.createImage()
+              await new Promise((resolve, reject) => {
+                image.onload = resolve
+                image.src = tempFilePath
+              })
+              // 图片加载完成回调
+              ctx.drawImage(image, 0, 0)
+              ctx.font = '30px Arial';
+              let textGroup = waterMark.split('<br>')
+              if (textGroup[0].indexOf('markimage|') != -1) textGroup.shift();
+              let oneWordHeight = 0, backgroundHeight = 0, bWidth = imageWidth, lineCount = 0, padding = 40, lineHeight = 6
+              let texty = 1, maxTextWidth = imageWidth - (padding * 2)
+              let measureRes = this.measureLineCount(ctx, textGroup, maxTextWidth)
+              oneWordHeight = measureRes.oneWordHeight
+              lineCount = measureRes.lineCount
+              oneWordHeight = oneWordHeight * 1.2
+              console.log('oneWordHeight', oneWordHeight)
+              console.log('line count', lineCount)
+              backgroundHeight += lineCount * (oneWordHeight + lineHeight)
+              backgroundHeight += padding * 2
+              texty = imageHeight - backgroundHeight + oneWordHeight + padding
+              ctx.rect(0, imageHeight - backgroundHeight, bWidth, backgroundHeight)
+              ctx.fillStyle = "rgba(71, 71, 71, 0.56)";
+              ctx.fill();
+              ctx.save();
+              ctx.fillStyle = 'white';
+              this.renderWrapText(ctx, textGroup, maxTextWidth, texty, oneWordHeight, padding, lineHeight)
+              // ctx.draw()
+              // 将 canvas 导出成临时图片文件
+              setTimeout(() => {
+                wx.canvasToTempFilePath({
+                  canvas: canvas,
+                  success: function (res) {
+                    // 输出生成的带水印的图片临时路径
+                    that.setData({
+                      previewSrc: res.tempFilePath
+                    })
+                    resolve(res.tempFilePath)
+                  },
+                  fail: function (res) {
+                    reject(res)
+                    console.error(res);
+                  }
+                });
+              }, 100);
+            
+            },
+            fail: function (imageRes) {
+              console.error(imageRes);
+            }
+          });
+      })
+    },
