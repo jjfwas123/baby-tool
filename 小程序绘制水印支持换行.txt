@@ -1,4 +1,4 @@
-measureLineCount(ctx, textGroup, maxTextWidth) {
+measureLineCount(ctx, textGroup, maxLineWidth) {
       let lineCount = 0, oneWordHeight = 0
       textGroup.forEach(str => {
         let lineWidth = 0
@@ -6,8 +6,8 @@ measureLineCount(ctx, textGroup, maxTextWidth) {
         for(let i = 0; i < str.length; i++) {
           let mesure = ctx.measureText(str[i])
           lineWidth += mesure.width;
-          oneWordHeight = Math.max(oneWordHeight, (mesure.actualBoundingBoxAscent || mesure.fontBoundingBoxAscent) + (mesure.actualBoundingBoxDescent || mesure.fontBoundingBoxDescent))
-          if (lineWidth > maxTextWidth) { 
+          oneWordHeight = Math.max(30, oneWordHeight, (mesure.actualBoundingBoxAscent || mesure.fontBoundingBoxAscent) + (mesure.actualBoundingBoxDescent || mesure.fontBoundingBoxDescent))
+          if (lineWidth > maxLineWidth) { 
             lineCount++
             lineWidth = 0
           }
@@ -15,22 +15,22 @@ measureLineCount(ctx, textGroup, maxTextWidth) {
       })
       return { lineCount, oneWordHeight }
     },
-    renderWrapText(ctx, textGroup, maxTextWidth, texty, oneWordHeight, padding, lineHeight) {
+    renderWrapText(ctx, textGroup, maxLineWidth, texty, oneWordHeight, padding, lineMargin) {
       textGroup.forEach((str) => { 
         let lineWidth = 0,
         lastSubStrIndex = 0
         for (let i = 0; i < str.length; i++) { 
           lineWidth += ctx.measureText(str[i]).width;
-          if (lineWidth > maxTextWidth) {
+          if (lineWidth > maxLineWidth) {
             // 第一行, string, x, y, 原点左上角
             ctx.fillText(str.substring(lastSubStrIndex, i), padding, texty); //绘制截取部分
-            texty += oneWordHeight + lineHeight
+            texty += oneWordHeight + lineMargin
             lineWidth = 0;
             lastSubStrIndex = i;
           }
           if (i == str.length - 1) { //绘制剩余部分
             ctx.fillText(str.substring(lastSubStrIndex, i + 1), padding, texty);
-            texty += oneWordHeight + lineHeight
+            texty += oneWordHeight + lineMargin
           }
         }
       })
@@ -60,16 +60,17 @@ measureLineCount(ctx, textGroup, maxTextWidth) {
               ctx.drawImage(image, 0, 0)
               ctx.font = '30px Arial';
               let textGroup = waterMark.split('<br>')
+              console.log('watermarkStr', waterMark)
               if (textGroup[0].indexOf('markimage|') != -1) textGroup.shift();
-              let oneWordHeight = 0, backgroundHeight = 0, bWidth = imageWidth, lineCount = 0, padding = 40, lineHeight = 6
-              let texty = 1, maxTextWidth = imageWidth - (padding * 2)
-              let measureRes = this.measureLineCount(ctx, textGroup, maxTextWidth)
+              let oneWordHeight = 0, backgroundHeight = 0, bWidth = imageWidth, lineCount = 0, padding = 40, lineMargin = 6
+              let texty = 1, maxLineWidth = imageWidth - (padding * 2)
+              let measureRes = this.measureLineCount(ctx, textGroup, maxLineWidth)
               oneWordHeight = measureRes.oneWordHeight
               lineCount = measureRes.lineCount
               oneWordHeight = oneWordHeight * 1.2
               console.log('oneWordHeight', oneWordHeight)
               console.log('line count', lineCount)
-              backgroundHeight += lineCount * (oneWordHeight + lineHeight)
+              backgroundHeight += lineCount * (oneWordHeight + lineMargin)
               backgroundHeight += padding * 2
               texty = imageHeight - backgroundHeight + oneWordHeight + padding
               ctx.rect(0, imageHeight - backgroundHeight, bWidth, backgroundHeight)
@@ -77,7 +78,7 @@ measureLineCount(ctx, textGroup, maxTextWidth) {
               ctx.fill();
               ctx.save();
               ctx.fillStyle = 'white';
-              this.renderWrapText(ctx, textGroup, maxTextWidth, texty, oneWordHeight, padding, lineHeight)
+              this.renderWrapText(ctx, textGroup, maxLineWidth, texty, oneWordHeight, padding, lineMargin)
               // ctx.draw()
               // 将 canvas 导出成临时图片文件
               setTimeout(() => {
