@@ -1,0 +1,7 @@
+{
+  "usingComponents": {
+    "c-picker": "/components/custom/picker/index",
+    "c-picker-datetime": "/components/custom/picker-datetime/index"
+  },
+  "navigationBarTitleText": "考勤日历"
+}

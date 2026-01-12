@@ -1,0 +1,36 @@
+<view class="top">
+  <c-picker-datetime type='year-month' bind:confirm="pickerConfirm" data-key="yearMonthData" >
+    <view class="select-year">
+      <view class="select-year-text">{{dateInfo.year+'-'+dateInfo.month}}</view>
+      <image src="/images/components/arrow-down.png" class="icon-arrow"></image>
+    </view>
+  </c-picker-datetime>
+</view>
+<view class="calendar" style="{{themeStyle}}">
+  <view class="calendar-weekday header-class">
+    <view class="weekday-item week-class" wx:for="{{weekDay}}" wx:key="index">
+      {{ item }}
+    </view>
+  </view>
+  <view class="calendar-container">
+      <!-- 显示一个月的数据 -->
+      <block>
+        <view class="calendar-month">{{dateInfo.year+'年'+dateInfo.month+'月'}}</view>
+        <view class="calendar-body" bindtouchstart="touchStart" bindtouchend="touchEnd">
+          <block wx:for="{{dateInfo.beginWeek+dateInfo.days}}" wx:key="index">
+            <view class="day-item-container" wx:if="{{index<dateInfo.beginWeek}}"></view>
+            <view class="day-item-container" wx:else>
+              <!-- 小于最小日期 -->
+              <view class="day-item color-999" wx:if="{{minDateInfo.month==dateInfo.month&&minDateInfo.day > (index+1-dateInfo.beginWeek)}}">{{index + 1 - dateInfo.beginWeek}}</view>
+              <!-- 大于最大日期 -->
+              <view class="day-item color-999" wx:elif="{{maxDateInfo.month==dateInfo.month&&maxDateInfo.day<(index+1-dateInfo.beginWeek)}}">{{index + 1 - dateInfo.beginWeek}}</view>
+              <!-- 可以选择的日期 -->
+              <view class="day-item" wx:else>{{index + 1 - dateInfo.beginWeek}}</view>
+              <view class="tips-text {{record[index + 1 - dateInfo.beginWeek] === '旷工'?'danger-color':''}}">{{record[index + 1 - dateInfo.beginWeek] || ''}}</view>
+            </view>
+          </block>
+        </view>
+      </block>
+      <!-- 显示选中的日期 -->
+  </view>
+</view>
